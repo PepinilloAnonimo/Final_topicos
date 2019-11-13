@@ -1,55 +1,130 @@
 package com.example.topicos;
-import com.mongodb.MongoClient;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
+
+import android.content.Context;
+import android.util.Log;
+import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.DataSource;
+import com.couchbase.lite.Database;
+import com.couchbase.lite.DatabaseConfiguration;
+import com.couchbase.lite.Expression;
+import com.couchbase.lite.Meta;
+import com.couchbase.lite.MutableDocument;
+import com.couchbase.lite.Query;
+import com.couchbase.lite.QueryBuilder;
+import com.couchbase.lite.Result;
+import com.couchbase.lite.ResultSet;
+import com.couchbase.lite.SelectResult;
 
 public class NoSQL {
-
+    Database database;
+    DatabaseConfiguration manager;
     public NoSQL(){
-
     }
-
-    private static MongoClient crearConexion() {
-        MongoClient mongo = null;
+    public void conexion(Context context){
+        manager = null;
+        database = null;
         try {
-            mongo = new MongoClient("192.168.1.2");
-        } catch (Error e) {
-            System.out.println(e.getCause());
+            manager = new DatabaseConfiguration(context);
+            database = new Database("final_topicos", manager);
+        }catch (Exception ex) {
+            Log.e("TAG", "Error getting database");
+            System.out.println("EFE");
+        }
+    }
+    public void calificar(int calificacion, String comentario, String usuario, String producto) {
+        MutableDocument mutableDocument = new MutableDocument()
+                .setInt("Calificacion", calificacion)
+                .setString("Comentario", comentario)
+                .setString("Usuario", usuario)
+                .setString("Producto", producto);
+        try{
+            database.save(mutableDocument);
+        }catch (CouchbaseLiteException e){
+            Log.e("TAG", "Error getting database");
         }
 
-        return mongo;
     }
-    public static void calificar (int calificacion, String comentario, String usuario, String producto){
-        MongoClient mongo;
-        mongo = crearConexion();
-        DB finalTopicos = mongo.getDB("finalTopicos");
-        DBCollection collection;
-        collection = finalTopicos.getCollection("calificaciones");
-        BasicDBObject info = new BasicDBObject();
-        info.put("Usuario", usuario);
-        info.put("Producto", producto);
-        info.put("Calificacion", calificacion);
-        info.put("Comentario", comentario);
-        collection.insert(info);
+    public void buscar_calificacion(String producto){
+        Query query = QueryBuilder
+                .select(SelectResult.expression(Meta.id),
+                        SelectResult.property("Calificacion"),
+                        SelectResult.property("Producto"),
+                        SelectResult.property("Usuario"))
+                .from(DataSource.database(database))
+                .where(Expression.property("Producto").equalTo(Expression.string(producto)));
+
+        try {
+            ResultSet rs = query.execute();
+            for (Result result : rs) {
+                Log.i("Sample", String.format("Usuario -> %s", result.getString("Usuario")));
+                Log.i("Sample", String.format("Calificacion -> %s", result.getInt("Calificacion")));
+                Log.i("Sample", String.format("Producto -> %s", result.getString("Producto")));
+            }
+        } catch (CouchbaseLiteException e) {
+            Log.e("Sample", e.getLocalizedMessage());
+        }
+    }
+    public void deseos(String usuario, String producto) {
+        MutableDocument mutableDocument = new MutableDocument()
+                .setString("Usuario", usuario)
+                .setString("Producto", producto)
+                .setString("Tipo", "lista");
+        try{
+            database.save(mutableDocument);
+        }catch (CouchbaseLiteException e){
+            Log.e("TAG", "Error getting database");
+        }
 
     }
-    public static void lista_deseos (String producto, String usuario){
-        MongoClient mongo = crearConexion();
-        DB finalTopicos = mongo.getDB("finalTopicos");
-        DBCollection collection = finalTopicos.getCollection("deseos");
-        BasicDBObject info = new BasicDBObject();
-        info.put("Usuario", usuario);
-        info.put("Producto", producto);
-        collection.insert(info);
+    public void buscar_deseos(String usuario){
+        Query query = QueryBuilder
+                .select(SelectResult.expression(Meta.id),
+                        SelectResult.property("Producto"),
+                        SelectResult.property("Usuario"))
+                .from(DataSource.database(database))
+                .where(Expression.property("Usuario").equalTo(Expression.string(usuario))
+                        .and((Expression.property("Tipo").equalTo(Expression.string("lista")))));
+
+        try {
+            ResultSet rs = query.execute();
+            for (Result result : rs) {
+
+                Log.i("Sample", String.format("Usuario -> %s", result.getString("Usuario")));
+                Log.i("Sample", String.format("Producto -> %s", result.getString("Producto")));
+            }
+        } catch (CouchbaseLiteException e) {
+            Log.e("Sample", e.getLocalizedMessage());
+        }
     }
-    public static void busquedas (String producto, String usuario){
-        MongoClient mongo = crearConexion();
-        DB finalTopicos = mongo.getDB("finalTopicos");
-        DBCollection collection = finalTopicos.getCollection("busqueda");
-        BasicDBObject info = new BasicDBObject();
-        info.put("Usuario", usuario);
-        info.put("Producto", producto);
-        collection.insert(info);
+    public void busqueda(String usuario, String busqueda){
+        MutableDocument mutableDocument = new MutableDocument()
+                .setString("Usuario", usuario)
+                .setString("Producto", busqueda)
+                .setString("Tipo", "busqueda");
+        try{
+            database.save(mutableDocument);
+        }catch (CouchbaseLiteException e){
+            Log.e("TAG", "Error getting database");
+        }
+    }
+    public void buscar_busquedas(String usuario){
+        Query query = QueryBuilder
+                .select(SelectResult.expression(Meta.id),
+                        SelectResult.property("Producto"),
+                        SelectResult.property("Usuario"))
+                .from(DataSource.database(database))
+                .where(Expression.property("Usuario").equalTo(Expression.string(usuario))
+                        .and((Expression.property("Tipo").equalTo(Expression.string("busqueda")))));
+
+        try {
+            ResultSet rs = query.execute();
+            for (Result result : rs) {
+
+                Log.i("Sample", String.format("Usuario -> %s", result.getString("Usuario")));
+                Log.i("Sample", String.format("Producto -> %s", result.getString("Producto")));
+            }
+        } catch (CouchbaseLiteException e) {
+            Log.e("Sample", e.getLocalizedMessage());
+        }
     }
 }
